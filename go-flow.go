@@ -1,0 +1,125 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"text/template"
+
+	"github.com/gogap/builder"
+	"github.com/gogap/config"
+	"github.com/urfave/cli"
+)
+
+func main() {
+	app := cli.NewApp()
+
+	app.Name = "go-flow"
+	app.HelpName = "go-flow"
+	app.HideVersion = true
+
+	app.Commands = cli.Commands{
+		cli.Command{
+			Name:  "build",
+			Usage: "build your own flow into binary",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config",
+					Usage: "flow config file",
+				},
+			},
+			Action: build,
+		},
+
+		cli.Command{
+			Name:  "run",
+			Usage: "run flow",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config",
+					Usage: "flow config file",
+				},
+			},
+			Action: run,
+		},
+	}
+
+	app.RunAndExitOnError()
+}
+
+func createBuilder(appName string, conf config.Configuration) (bu *builder.Builder, err error) {
+
+	buildConfStr := fmt.Sprintf("%s { packages = %s }", appName, conf.GetStringList("packages"))
+
+	tmpl, err := template.New(appName).Parse(flowTempl)
+	if err != nil {
+		return
+	}
+
+	b, err := builder.NewBuilder(
+		builder.ConfigString(buildConfStr),
+		builder.Template(tmpl),
+	)
+
+	if err != nil {
+		return
+	}
+
+	bu = b
+	return
+}
+
+func build(ctx *cli.Context) (err error) {
+
+	configFile := ctx.String("config")
+
+	if len(configFile) == 0 {
+		err = fmt.Errorf("please input config file")
+		return
+	}
+
+	conf := config.NewConfig(config.ConfigFile(configFile))
+
+	appName := conf.GetString("app.name", "app")
+
+	b, err := createBuilder(appName, conf)
+	if err != nil {
+		return
+	}
+
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return
+	}
+
+	err = b.Build(map[string]interface{}{"config_str": fmt.Sprintf("`%s`", string(configData))}, appName)
+
+	return
+}
+
+func run(ctx *cli.Context) (err error) {
+
+	configFile := ctx.String("config")
+
+	if len(configFile) == 0 {
+		err = fmt.Errorf("please input config file")
+		return
+	}
+
+	conf := config.NewConfig(config.ConfigFile(configFile))
+
+	appName := conf.GetString("app.name", "app")
+
+	b, err := createBuilder(appName, conf)
+	if err != nil {
+		return
+	}
+
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return
+	}
+
+	err = b.Run(map[string]interface{}{"config_str": fmt.Sprintf("`%s`", string(configData))}, appName, ctx.Args())
+
+	return
+}
