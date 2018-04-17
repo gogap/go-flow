@@ -43,10 +43,6 @@ func main() {
 						Name:  "disable, d",
 						Usage: "disable steps, e.g.: -d devops.aliyun.cs.cluster.deleted.wait -d devops.aliyun.cs.cluster.running.wait",
 					},
-					cli.StringSliceFlag{
-						Name:  "context, ctx",
-						Usage: "flow context, e.g.: -ctx a:b -ctx c:d",
-					},
 				},
 				Action: newAction(cmdName, cmdConf),
 			},
