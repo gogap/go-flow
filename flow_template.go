@@ -37,47 +37,9 @@ func main() {
 
 	commandsConf := appConf.GetConfig("commands")
 
-	for _, cmdName := range commandsConf.Keys() {
-		cmdConf := commandsConf.GetConfig(cmdName)
-		app.Commands = append(app.Commands,
-			cli.Command{
-				Name:  cmdName,
-				Usage: cmdConf.GetString("usage"),
-				Flags: []cli.Flag{
-					cli.StringSliceFlag{
-						Name:  "disable, d",
-						Usage: "disable steps, e.g.: -d devops.aliyun.cs.cluster.deleted.wait -d devops.aliyun.cs.cluster.running.wait",
-					},
-					cli.StringSliceFlag{
-						Name:  "env",
-						Usage: "e.g.: --env USER:test --env PWD:asdf",
-					},
-					cli.StringSliceFlag{
-						Name:  "env-file",
-						Usage: "e.g.: --env-file a.json --env-file b.json",
-					},
-				},
-				Action: newAction(cmdName, cmdConf),
-			},
-		)
+	for _, key := range commandsConf.Keys() {
+		generateCommands(&app.Commands, key, commandsConf.GetConfig(key))
 	}
-
-	app.Commands = append(app.Commands,
-		cli.Command{
-			Name:  "metadata",
-			Usage: "show this flow metadata",
-			Subcommands: cli.Commands{
-				cli.Command{
-					Name:  "config",
-					Usage: "build and run config",
-					Action: func(ctx *cli.Context) error {
-						fmt.Println(configStr)
-						return nil
-					},
-				},
-			},
-		},
-	)
 
 	app.RunAndExitOnError()
 
@@ -90,7 +52,7 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 		err = loadENV(ctx)
 
-		if err!=nil {
+		if err != nil {
 			return
 		}
 
@@ -191,5 +153,69 @@ func loadENV(ctx *cli.Context) (err error) {
 
 	return
 }
+
+func generateCommands(cmds *[]cli.Command, name string, conf config.Configuration) {
+
+	keys := conf.Keys()
+
+	if len(keys) == 0 {
+		return
+	}
+
+	objCount := 0
+	for _, key := range keys {
+		if conf.IsObject(key) || key == "usage" {
+			objCount++
+		}
+	}
+
+	// Command
+	if objCount != len(keys) {
+		*cmds = append(*cmds,
+			cli.Command{
+				Name:  name,
+				Usage: conf.GetString("usage"),
+				Flags: []cli.Flag{
+					cli.StringSliceFlag{
+						Name:  "disable, d",
+						Usage: "disable steps, e.g.: -d devops.aliyun.cs.cluster.deleted.wait -d devops.aliyun.cs.cluster.running.wait",
+					},
+					cli.StringSliceFlag{
+						Name:  "env",
+						Usage: "e.g.: --env USER:test --env PWD:asdf",
+					},
+					cli.StringSliceFlag{
+						Name:  "env-file",
+						Usage: "e.g.: --env-file a.json --env-file b.json",
+					},
+				},
+				Action: newAction(name, conf),
+			},
+		)
+
+		return
+	}
+
+	var subCommands []cli.Command
+
+	for _, key := range conf.Keys() {
+
+		if key == "usage" {
+			continue
+		}
+
+		generateCommands(&subCommands, key, conf.GetConfig(key))
+
+	}
+
+	currentCommand := cli.Command{
+		Name:        name,
+		Usage:       conf.GetString("usage"),
+		Subcommands: subCommands,
+	}
+
+	*cmds = append(*cmds, currentCommand)
+}
+
 `
 )

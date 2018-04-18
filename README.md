@@ -77,6 +77,74 @@ Hello: Zeal
 
 ### Advance Example
 
+#### Subcommands
+
+```
+packages = ["github.com/flow-contrib/example/hello"]
+
+app {
+    name = "hello"
+    usage = "This is a demo for run flow"
+
+    commands {
+        say {
+            usage = "say something"
+
+            gogap {
+                usage = "This command will print hello"
+
+                default-config = { name = "gogap" }
+
+                flow = ["example.hello", "example.hello@confA"]
+                
+                config = {
+                  confA = {
+                     name = "Zeal"
+                    }
+                }
+            }
+
+            world {
+                usage = "This command will print world"
+
+                default-config = { name = "world" }
+
+                flow = ["example.hello"]
+                
+                config = {}
+            }
+        }
+    }
+}
+```
+
+```bash
+$ go-flow run --config hello.conf say
+NAME:
+   hello say - say something
+
+USAGE:
+   hello say command [command options] [arguments...]
+
+COMMANDS:
+     gogap  This command will print hello
+     world  This command will print world
+```
+
+```bash
+$ go-flow run --config hello.conf say gogap
+Hello: gogap
+Hello: Zeal
+```
+
+```bash
+$ go-flow run --config hello.conf say world
+Hello: world
+```
+
+
+#### Run javascript flow
+
 `goja.conf`
 
 ```hocon
