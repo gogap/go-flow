@@ -4,6 +4,11 @@ var (
 	flowTempl = `package main
 import (
 	"strings"
+	"fmt"
+	"bytes"
+	"os"
+	"encoding/json"
+	"io/ioutil"
 
 	"github.com/gogap/config"
 	"github.com/gogap/context"
@@ -43,11 +48,36 @@ func main() {
 						Name:  "disable, d",
 						Usage: "disable steps, e.g.: -d devops.aliyun.cs.cluster.deleted.wait -d devops.aliyun.cs.cluster.running.wait",
 					},
+					cli.StringSliceFlag{
+						Name:  "env",
+						Usage: "e.g.: --env USER:test --env PWD:asdf",
+					},
+					cli.StringSliceFlag{
+						Name:  "env-file",
+						Usage: "e.g.: --env-file a.json --env-file b.json",
+					},
 				},
 				Action: newAction(cmdName, cmdConf),
 			},
 		)
 	}
+
+	app.Commands = append(app.Commands,
+		cli.Command{
+			Name:  "metadata",
+			Usage: "show this flow metadata",
+			Subcommands: cli.Commands{
+				cli.Command{
+					Name:  "config",
+					Usage: "build and run config",
+					Action: func(ctx *cli.Context) error {
+						fmt.Println(configStr)
+						return nil
+					},
+				},
+			},
+		},
+	)
 
 	app.RunAndExitOnError()
 
@@ -56,7 +86,13 @@ func main() {
 
 func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
-	return func(ctx *cli.Context) error {
+	return func(ctx *cli.Context) (err error) {
+
+		err = loadENV(ctx)
+
+		if err!=nil {
+			return
+		}
 
 		disableSteps := ctx.StringSlice("disable")
 
@@ -90,7 +126,7 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 				name = handlerAndConf[0]
 			}
 
-			if mapDisabelSteps[name] {
+			if mapDisabelSteps[item] {
 				continue
 			}
 
@@ -104,5 +140,56 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 		return trans.Commit()
 	}
-}`
+}
+
+func loadENV(ctx *cli.Context) (err error) {
+	envs := ctx.StringSlice("env")
+	envFiles := ctx.StringSlice("env-file")
+
+	if len(envs) == 0 && len(envFiles) == 0 {
+		return
+	}
+
+	mapENV := map[string]string{}
+
+	for _, env := range envs {
+		v := strings.SplitN(env, ":", 2)
+		if len(v) != 2 {
+			err = fmt.Errorf("env format error:%s", env)
+			return
+		}
+
+		mapENV[v[0]] = v[1]
+	}
+
+	for _, f := range envFiles {
+
+		var data []byte
+		data, err = ioutil.ReadFile(f)
+		if err != nil {
+			return
+		}
+
+		buf := bytes.NewBuffer(data)
+		decoder := json.NewDecoder(buf)
+		decoder.UseNumber()
+
+		tmpMap := map[string]string{}
+		err = decoder.Decode(&tmpMap)
+		if err != nil {
+			return
+		}
+
+		for k, v := range tmpMap {
+			mapENV[k] = v
+		}
+	}
+
+	for k, v := range mapENV {
+		os.Setenv(k, v)
+	}
+
+	return
+}
+`
 )

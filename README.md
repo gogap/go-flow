@@ -56,16 +56,23 @@ Hello: Zeal
 ### Distribution your flow
 
 ```bash
-go-flow build --config hello.conf
+$ go-flow build --config hello.conf
 ```
 
 or 
 
 ```bash
-GOOS=linux GOARCH=amd64 go-flow build --config hello.conf
+$ GOOS=linux GOARCH=amd64 go-flow build --config hello.conf
 ```
 
-Just send the output binary `./hello` to your firend
+Just send the output binary `./hello` to your firend, then He just input command:
+
+```
+$ ./hello say
+
+Hello: gogap
+Hello: Zeal
+```
 
 
 ### Advance Example
