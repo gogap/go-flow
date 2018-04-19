@@ -23,7 +23,7 @@ go get -v github.com/gogap/go-flow
 The config file of `hello.conf`
 
 ```hocon
-packages = ["github.com/flow-contrib/example"]
+packages = ["github.com/flow-contrib/example/hello"]
 
 app {
     name = "hello"
@@ -47,7 +47,7 @@ app {
 ```
 
 ```bash
-$ go-flow run say --config hello.conf
+$ go-flow -v run --config hello.conf say
 
 Hello: gogap
 Hello: Zeal
