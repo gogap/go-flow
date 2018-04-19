@@ -3,16 +3,18 @@ package main
 var (
 	flowTempl = `package main
 import (
-	"strings"
-	"fmt"
 	"bytes"
-	"os"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
 
 	"github.com/gogap/config"
 	"github.com/gogap/context"
 	"github.com/gogap/flow"
+	"github.com/gogap/logrus_mate"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -26,14 +28,19 @@ func main() {
 		config.ConfigString(configStr),
 	)
 
-	app := cli.NewApp()
-	app.HideVersion = true
-
 	appConf := conf.GetConfig("app")
 
+	app := cli.NewApp()
+
+	app.Version = appConf.GetString("version", "0.0.0")
+	app.Author = appConf.GetString("author")
 	app.Name = appConf.GetString("name", "app")
 	app.Usage = appConf.GetString("usage")
 	app.HelpName = app.Name
+
+	if app.Version == "0.0.0" {
+		app.HideVersion = true
+	}
 
 	commandsConf := appConf.GetConfig("commands")
 
@@ -57,10 +64,40 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 		}
 
 		disableSteps := ctx.StringSlice("disable")
+		configFiles := ctx.StringSlice("config")
 
 		defaultConf := conf.GetConfig("default-config")
 
+		mapConfigs := map[string]config.Configuration{
+			"default-config": defaultConf,
+		}
+
+		for _, configArg := range configFiles {
+			v := strings.SplitN(configArg, ":", 2)
+			if len(v) == 1 {
+				argsConfig := config.NewConfig(config.ConfigFile(v[0]))
+				mapConfigs["default-config"] = argsConfig
+			} else if len(v) == 2 {
+				argsConfig := config.NewConfig(config.ConfigFile(v[1]))
+				mapConfigs[v[0]] = argsConfig
+			}
+		}
+
+		defaultConf = mapConfigs["default-config"]
+
+		loggerConf := defaultConf.GetConfig("logger")
+
+		logrus_mate.Hijack(
+			logrus.StandardLogger(),
+			logrus_mate.WithConfig(loggerConf),
+		)
+
 		flowCtx := context.NewContext()
+
+		ctxList := ctx.StringSlice("ctx")
+		ctxFiles := ctx.StringSlice("ctx-file")
+
+		loadContext(ctxList, ctxFiles, flowCtx)
 
 		trans := flow.Begin(flowCtx, config.WithConfig(defaultConf))
 
@@ -94,6 +131,11 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 			if len(configName) > 0 {
 				handlerConf := flowItemConfig.GetConfig(configName)
+
+				if hConf, exist := mapConfigs[configName]; exist {
+					handlerConf = hConf
+				}
+
 				trans.Then(name, config.WithConfig(handlerConf))
 			} else {
 				trans.Then(name)
@@ -154,6 +196,54 @@ func loadENV(ctx *cli.Context) (err error) {
 	return
 }
 
+func loadContext(ctxList []string, ctxFiles []string, flowCtx context.Context) (err error) {
+
+	if len(ctxList) == 0 && len(ctxFiles) == 0 {
+		return
+	}
+
+	mapCtx := map[string]string{}
+
+	for _, c := range ctxList {
+		v := strings.SplitN(c, ":", 2)
+		if len(v) != 2 {
+			err = fmt.Errorf("ctx format error:%s", c)
+			return
+		}
+
+		mapCtx[v[0]] = v[1]
+	}
+
+	for _, f := range ctxFiles {
+
+		var data []byte
+		data, err = ioutil.ReadFile(f)
+		if err != nil {
+			return
+		}
+
+		buf := bytes.NewBuffer(data)
+		decoder := json.NewDecoder(buf)
+		decoder.UseNumber()
+
+		tmpMap := map[string]string{}
+		err = decoder.Decode(&tmpMap)
+		if err != nil {
+			return
+		}
+
+		for k, v := range tmpMap {
+			mapCtx[k] = v
+		}
+	}
+
+	for k, v := range mapCtx {
+		flowCtx.WithValue(k, v)
+	}
+
+	return
+}
+
 func generateCommands(cmds *[]cli.Command, name string, conf config.Configuration) {
 
 	keys := conf.Keys()
@@ -181,8 +271,16 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 						Usage: "disable steps, e.g.: -d devops.aliyun.cs.cluster.deleted.wait -d devops.aliyun.cs.cluster.running.wait",
 					},
 					cli.StringSliceFlag{
+						Name:  "config, c",
+						Usage: "use specified config to default config",
+					},
+					cli.StringSliceFlag{
 						Name:  "env",
 						Usage: "e.g.: --env USER:test --env PWD:asdf",
+					},
+					cli.StringSliceFlag{
+						Name:  "ctx",
+						Usage: "e.g.: --ctx code:gogap --env hello:world",
 					},
 					cli.StringSliceFlag{
 						Name:  "env-file",
@@ -216,6 +314,5 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 
 	*cmds = append(*cmds, currentCommand)
 }
-
 `
 )
