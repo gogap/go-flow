@@ -1,7 +1,5 @@
 package main
 
-var (
-	flowTempl = `package main
 import (
 	"bytes"
 	"encoding/json"
@@ -142,7 +140,44 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 			}
 		}
 
-		return trans.Commit()
+		err = trans.Commit()
+
+		if err != nil {
+			return
+		}
+
+		quiet := ctx.Bool("quiet")
+		output := ctx.String("output")
+
+		if !quiet || len(output) > 0 {
+
+			nameValues := trans.Output()
+
+			var outdata []byte
+			outdata, err = json.MarshalIndent(
+				struct {
+					Output []flow.NameValue `json:"output"`
+				}{nameValues},
+				"",
+				"    ")
+
+			if err != nil {
+				return
+			}
+
+			if len(output) == 0 {
+				if len(nameValues) > 0 {
+					fmt.Println(string(outdata))
+				}
+			} else {
+				err = ioutil.WriteFile(output, outdata, 0644)
+				if err != nil {
+					return
+				}
+			}
+		}
+
+		return
 	}
 }
 
@@ -286,6 +321,14 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 						Name:  "env-file",
 						Usage: "e.g.: --env-file a.json --env-file b.json",
 					},
+					cli.BoolFlag{
+						Name:  "quiet, q",
+						Usage: "be quiet, no output data print",
+					},
+					cli.StringFlag{
+						Name:  "output, o",
+						Usage: "filename out output",
+					},
 				},
 				Action: newAction(name, conf),
 			},
@@ -314,5 +357,3 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 
 	*cmds = append(*cmds, currentCommand)
 }
-`
-)
