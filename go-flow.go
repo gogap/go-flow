@@ -65,7 +65,6 @@ func createBuilder(appName string, verbose bool, conf config.Configuration) (bu 
 packages = %s
 build.args {
 	go-get = ["-v"]
-	go-build = ["-v"]
 }
 			}`, appName, conf.GetStringList("packages"))
 	} else {
