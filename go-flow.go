@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"text/template"
@@ -39,7 +40,9 @@ func main() {
 					Usage: "flow config file",
 				},
 			},
-			Action: run,
+			Action:          run,
+			SkipFlagParsing: true,
+			SkipArgReorder:  true,
 		},
 	}
 
@@ -98,7 +101,16 @@ func build(ctx *cli.Context) (err error) {
 
 func run(ctx *cli.Context) (err error) {
 
-	configFile := ctx.String("config")
+	set := flag.NewFlagSet("run", 0)
+
+	confArg := set.String("config", "", "flow config file")
+
+	err = set.Parse(ctx.Args()[0:2])
+	if err != nil {
+		return
+	}
+
+	configFile := *confArg
 
 	if len(configFile) == 0 {
 		err = fmt.Errorf("please input config file")
@@ -119,7 +131,7 @@ func run(ctx *cli.Context) (err error) {
 		return
 	}
 
-	err = b.Run(map[string]interface{}{"config_str": fmt.Sprintf("`%s`", string(configData))}, appName, ctx.Args())
+	err = b.Run(map[string]interface{}{"config_str": fmt.Sprintf("`%s`", string(configData))}, appName, ctx.Args()[2:])
 
 	return
 }
