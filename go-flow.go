@@ -46,12 +46,31 @@ func main() {
 		},
 	}
 
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "verbose, v",
+			Usage: "be verbose",
+		},
+	}
+
 	app.RunAndExitOnError()
 }
 
-func createBuilder(appName string, conf config.Configuration) (bu *builder.Builder, err error) {
+func createBuilder(appName string, verbose bool, conf config.Configuration) (bu *builder.Builder, err error) {
 
-	buildConfStr := fmt.Sprintf("%s { packages = %s }", appName, conf.GetStringList("packages"))
+	var buildConfStr string
+
+	if verbose {
+		buildConfStr = fmt.Sprintf(`%s {
+packages = %s
+build.args {
+	go-get = ["-v"]
+	go-build = ["-v"]
+}
+			}`, appName, conf.GetStringList("packages"))
+	} else {
+		buildConfStr = fmt.Sprintf("%s { packages = %s }", appName, conf.GetStringList("packages"))
+	}
 
 	tmpl, err := template.New(appName).Parse(flowTempl)
 	if err != nil {
@@ -84,7 +103,9 @@ func build(ctx *cli.Context) (err error) {
 
 	appName := conf.GetString("app.name", "app")
 
-	b, err := createBuilder(appName, conf)
+	verbose := ctx.Parent().Bool("verbose")
+
+	b, err := createBuilder(appName, verbose, conf)
 	if err != nil {
 		return
 	}
@@ -121,7 +142,9 @@ func run(ctx *cli.Context) (err error) {
 
 	appName := conf.GetString("app.name", "app")
 
-	b, err := createBuilder(appName, conf)
+	verbose := ctx.Parent().Bool("verbose")
+
+	b, err := createBuilder(appName, verbose, conf)
 	if err != nil {
 		return
 	}
