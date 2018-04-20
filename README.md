@@ -197,7 +197,7 @@ $ go-flow run execute --config goja.conf
 `ssh.conf`
 
 ```ssh
-packages = ["github.com/flow-contrib/tookit/ssh"]
+packages = ["github.com/flow-contrib/toolkit/ssh"]
 
 app {
     name = "ssh"
@@ -224,7 +224,7 @@ app {
                 """
             }
 
-            flow = ["tookit.ssh.run"]
+            flow = ["toolkit.ssh.run"]
         }
     }
 }
