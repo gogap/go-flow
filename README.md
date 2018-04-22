@@ -205,7 +205,7 @@ app {
 
     commands {
         run {
-            usage = "This command will print hello"
+            usage = "Run command on remote ssh server"
 
             default-config = { 
             
@@ -216,12 +216,15 @@ app {
 
                 environment = ["GOPATH=/gopath"]
                 command     = ["/bin/bash"]
-                timeout     = 100s
+                timeout     = 10s
 
                 stdin ="""
-                ping -c 10 example.com
+                ping -c 1 example.com
                 echo $GOPATH
                 """
+
+                quiet = false
+                output.name = "ping-example" # set output name
             }
 
             flow = ["toolkit.ssh.run"]
@@ -231,12 +234,13 @@ app {
 ```
 
 ```bash
-$ go-flow run --config ssh.conf run
-```
+$ go-flow run --config flow.conf run
 
-```
 PING example.com (93.184.216.34): 56 data bytes
-64 bytes from 93.184.216.34: icmp_seq=0 ttl=46 time=162.728 ms
-......
+64 bytes from 93.184.216.34: icmp_seq=0 ttl=46 time=267.681 ms
+--- example.com ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max/stddev = 267.681/267.681/267.681/0.000 ms
+/gopath
 ```
 
