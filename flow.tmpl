@@ -155,9 +155,7 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 			var outdata []byte
 			outdata, err = json.MarshalIndent(
-				struct {
-					Output []flow.NameValue `json:"output"`
-				}{nameValues},
+				nameValues,
 				"",
 				"    ")
 
