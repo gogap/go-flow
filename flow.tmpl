@@ -97,6 +97,24 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 		loadContext(ctxList, ctxFiles, flowCtx)
 
+		inputFiles := ctx.StringSlice("input")
+
+		for _, inputFile := range inputFiles {
+			var inputFileData []byte
+			inputFileData, err = ioutil.ReadFile(inputFile)
+			if err != nil {
+				return
+			}
+
+			var nameValues []flow.NameValue
+			err = json.Unmarshal(inputFileData, &nameValues)
+			if err != nil {
+				return
+			}
+
+			flow.AppendOutput(flowCtx, nameValues...)
+		}
+
 		trans := flow.Begin(flowCtx, config.WithConfig(defaultConf))
 
 		flowList := conf.GetStringList("flow")
@@ -319,13 +337,17 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 						Name:  "env-file",
 						Usage: "e.g.: --env-file a.json --env-file b.json",
 					},
-					cli.BoolFlag{
-						Name:  "quiet, q",
-						Usage: "be quiet, no output data print",
+					cli.StringSliceFlag{
+						Name:  "input, i",
+						Usage: "input file from other's output for init this flow, e.g.: -i output1.json -i output2.json",
 					},
 					cli.StringFlag{
 						Name:  "output, o",
-						Usage: "filename out output",
+						Usage: "filename of output",
+					},
+					cli.BoolFlag{
+						Name:  "quiet, q",
+						Usage: "be quiet, no output data print",
 					},
 				},
 				Action: newAction(name, conf),
