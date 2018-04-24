@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,17 @@ import (
 var (
 	configStr = {{.config_str}}
 )
+
+func init() {
+	if len(configStr) > 0 {
+		configStrData, err := base64.StdEncoding.DecodeString(configStr)
+		if err != nil {
+			err = fmt.Errorf("decode config str failure: %s\n", err.Error())
+			panic(err)
+		}
+		configStr = string(configStrData)
+	}
+}
 
 func main() {
 
