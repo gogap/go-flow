@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gogap/config"
@@ -139,31 +141,27 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 			mapDisabelSteps[step] = true
 		}
 
-		for _, item := range flowList {
+		for i, strURL := range flowList {
 
-			handlerAndConf := strings.SplitN(item, "@", 2)
+			var flowURL *url.URL
+			flowURL, err = url.Parse("flow://" + strURL)
 
-			name := ""
-			configName := ""
+			name := flowURL.Host
 
-			if len(handlerAndConf) == 2 {
-				name = handlerAndConf[0]
-				configName = handlerAndConf[1]
-			} else {
-				name = handlerAndConf[0]
+			id := flowURL.Query().Get("id")
+
+			if len(id) == 0 {
+				id = strconv.Itoa(i)
 			}
 
-			if mapDisabelSteps[item] {
+			if mapDisabelSteps[id] {
 				continue
 			}
 
-			if len(configName) > 0 {
-				handlerConf := flowItemConfig.GetConfig(configName)
-
-				if hConf, exist := mapConfigs[configName]; exist {
-					handlerConf = hConf
-				}
-
+			if handlerConf, exist := mapConfigs[id]; exist {
+				trans.Then(name, config.WithConfig(handlerConf))
+			} else if flowItemConfig.HasPath(id) {
+				handlerConf = flowItemConfig.GetConfig(id)
 				trans.Then(name, config.WithConfig(handlerConf))
 			} else {
 				trans.Then(name)
@@ -335,7 +333,7 @@ func generateCommands(cmds *[]cli.Command, name string, conf config.Configuratio
 					},
 					cli.StringSliceFlag{
 						Name:  "config, c",
-						Usage: "use specified config to default config",
+						Usage: "mapping config to flow steps, e.g.: --config default.conf --config 0:step0.conf",
 					},
 					cli.StringSliceFlag{
 						Name:  "env",

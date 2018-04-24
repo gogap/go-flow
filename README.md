@@ -35,10 +35,10 @@ app {
 
             default-config = { name = "gogap" }
 
-            flow = ["example.hello", "example.hello@confA"]
+            flow = ["example.hello", "example.hello"]
             
             config = {
-              confA = {
+              "1" = {
                  name = "Zeal"
             }
         }
@@ -95,10 +95,10 @@ app {
 
                 default-config = { name = "gogap" }
 
-                flow = ["example.hello", "example.hello@confA"]
+                flow = ["example.hello", "example.hello"]
                 
                 config = {
-                  confA = {
+                  "1" = {
                      name = "Zeal"
                     }
                 }
@@ -160,11 +160,11 @@ app {
 
 			default-config = {}
 
-			flow = ["lang.javascript.goja@confA", "lang.javascript.goja@confB"]
+			flow = ["lang.javascript.goja?id=a", "lang.javascript.goja?id=b"]
 
 			config {
-				confA = {src = A.js}
-				confB = {src = B.js}
+				a = {src = A.js}
+				b = {src = B.js}
 			}
 		}
 	}
@@ -185,7 +185,7 @@ console.log("I am from B.js")
 ```
 
 ```bash
-$ go-flow run execute --config goja.conf 
+$ go-flow -v run --config goja.conf execute
 
 2018/04/17 22:59:24 A.js
 2018/04/17 22:59:24 B.js
