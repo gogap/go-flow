@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"text/template"
 
 	"github.com/gogap/builder"
@@ -78,7 +79,10 @@ packages = %s
 build.args {
     %s
   }
-}`, appName, conf.GetStringList("packages"), argsConf)
+}`, appName,
+		toPkgList(conf.GetStringList("packages")),
+		argsConf,
+	)
 
 	goTmpl, err := base64.StdEncoding.DecodeString(flowTempl)
 	if err != nil {
@@ -101,6 +105,17 @@ build.args {
 
 	bu = b
 	return
+}
+
+func toPkgList(list []string) string {
+
+	var values []string
+
+	for _, item := range list {
+		values = append(values, fmt.Sprintf("\"%s\"", item))
+	}
+
+	return "[" + strings.Join(values, ",") + "]"
 }
 
 func build(ctx *cli.Context) (err error) {
