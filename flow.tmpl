@@ -80,22 +80,22 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 		defaultConf := conf.GetConfig("default-config")
 
-		mapConfigs := map[string]config.Configuration{
-			"default-config": defaultConf,
-		}
+		mapConfigFile := map[string]string{}
 
 		for _, configArg := range configFiles {
 			v := strings.SplitN(configArg, ":", 2)
 			if len(v) == 1 {
-				argsConfig := config.NewConfig(config.ConfigFile(v[0]))
-				mapConfigs["default-config"] = argsConfig
+				mapConfigFile["default-config"] = v[0]
 			} else if len(v) == 2 {
-				argsConfig := config.NewConfig(config.ConfigFile(v[1]))
-				mapConfigs[v[0]] = argsConfig
+				mapConfigFile[v[0]] = v[1]
 			}
 		}
 
-		defaultConf = mapConfigs["default-config"]
+		if defaultConfigFile, exist := mapConfigFile["default-config"]; exist {
+			defaultConf = config.NewConfig(
+				config.ConfigFile(defaultConfigFile),
+			)
+		}
 
 		loggerConf := defaultConf.GetConfig("logger")
 
@@ -158,10 +158,10 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 				continue
 			}
 
-			if handlerConf, exist := mapConfigs[id]; exist {
-				trans.Then(name, config.WithConfig(handlerConf))
+			if configFile, exist := mapConfigFile[id]; exist {
+				trans.Then(name, config.ConfigFile(configFile))
 			} else if flowItemConfig.HasPath(id) {
-				handlerConf = flowItemConfig.GetConfig(id)
+				handlerConf := flowItemConfig.GetConfig(id)
 				trans.Then(name, config.WithConfig(handlerConf))
 			} else {
 				trans.Then(name)
