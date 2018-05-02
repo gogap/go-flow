@@ -160,7 +160,7 @@ app {
 
 			default-config = {}
 
-			flow = ["lang.javascript.goja?id=a", "lang.javascript.goja?id=b"]
+			flow = ["lang.javascript.goja?class=a", "lang.javascript.goja?class=b"]
 
 			config {
 				a = {src = A.js}
