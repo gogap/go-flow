@@ -76,7 +76,7 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 			return
 		}
 
-		disableSteps := ctx.StringSlice("disable")
+		skipSteps := ctx.StringSlice("skip")
 		configFiles := ctx.StringSlice("config")
 		logConfigFile := ctx.String("log-config")
 
@@ -133,7 +133,7 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 
 		mapSkipSteps := map[string]bool{}
 
-		for _, step := range disableSteps {
+		for _, step := range skipSteps {
 			mapSkipSteps[step] = true
 		}
 
@@ -231,6 +231,8 @@ func newAction(name string, conf config.Configuration) cli.ActionFunc {
 				printToSTD,
 				"",
 				"    ")
+
+			printData = append(printData, '\n')
 
 			io.Copy(os.Stdout, bytes.NewReader(printData))
 
